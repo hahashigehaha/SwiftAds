@@ -1,0 +1,6 @@
+framework module Pods_SwiftAds {
+  umbrella header "Pods-SwiftAds-umbrella.h"
+
+  export *
+  module * { export * }
+}
