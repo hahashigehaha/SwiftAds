@@ -9,6 +9,7 @@ import GoogleMobileAds
 class AdmobBannerAds: SwiftViewAds {
     
     private var rawAd: BannerView?
+    var bannerLoadDelegate: BannerLoadDelegate?
     
     init(platformAdUnit: String,ttl: Int) {
         super.init()
@@ -26,5 +27,25 @@ class AdmobBannerAds: SwiftViewAds {
     override func view() -> UIView? {
         return rawAd
     }
+
+}
+
+
+class BannerLoadDelegate:NSObject,BannerViewDelegate {
     
+    var completion: (BannerView?,String) -> Void
+    
+    init(completion: @escaping (BannerView?,String) -> Void) {
+        self.completion = completion
+    }
+    
+    func bannerViewDidReceiveAd(_ bannerView: BannerView) {
+        print("admob adapter banner load delegate success")
+        completion(bannerView,"")
+    }
+    
+    func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: any Error) {
+        print("admob adapter banner load delegate : \(error.localizedDescription)")
+        completion(nil,error.localizedDescription)
+    }
 }

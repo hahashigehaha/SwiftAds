@@ -108,43 +108,22 @@ class AdmobAdapter: NSObject, AdsAdapter {
     }
     
     private func requestBannerAd(adUnitId: String,ttl: Int) async -> (adResult: SwiftViewAds?, reason: String) {
+        var bannerView: BannerView?
+        let swiftViewAds: AdmobBannerAds = AdmobBannerAds(platformAdUnit: adUnitId, ttl: ttl)
         return await withCheckedContinuation { continuation in
             DispatchQueue.main.async {
-                let bannerView = BannerView(adSize: AdSize())
-                let bannerDelegate =  BannerLoadDelegate {adResult, reason in
-                    var swiftViewAds: AdmobBannerAds? = nil
+                bannerView = BannerView(adSize: AdSize())
+                swiftViewAds.bannerLoadDelegate =  BannerLoadDelegate {adResult, reason in
                     if adResult != nil {
-                        swiftViewAds = AdmobBannerAds(platformAdUnit: adUnitId, ttl: ttl)
-                        swiftViewAds?.setRawAd(bannerAd: adResult)
+                        swiftViewAds.setRawAd(bannerAd: adResult)
                         continuation.resume(with: .success((swiftViewAds,"")))
                     } else {
                         continuation.resume(with: .success((nil,reason)))
                     }
                 }
-                bannerView.delegate = bannerDelegate
-                bannerView.load(Request())
+                bannerView?.delegate = swiftViewAds.bannerLoadDelegate
+                bannerView?.load(Request())
             }
         }
     }
-
-    
-    class BannerLoadDelegate:NSObject,BannerViewDelegate {
-        
-        var completion: (BannerView?,String) -> Void
-        
-        init(completion: @escaping (BannerView?,String) -> Void) {
-            self.completion = completion
-        }
-        
-        func bannerViewDidReceiveAd(_ bannerView: BannerView) {
-            print("admob adapter banner load delegate success")
-            completion(bannerView,"")
-        }
-        
-        func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: any Error) {
-            print("admob adapter banner load delegate : \(error.localizedDescription)")
-            completion(nil,error.localizedDescription)
-        }
-    }
-    
 }
