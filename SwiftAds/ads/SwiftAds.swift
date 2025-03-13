@@ -33,16 +33,12 @@ protocol InteractionCallback {
 }
 
 protocol AdsAdapter {
-    associatedtype T: SwiftAds // 声明关联类型 T
-    
     func initAdapter(config: [String : Any])
-    func loadFullScreenAds(config: [String : Any]) async -> (adResult: T?,reson: String?)
-    func loadViewAds(config: [String : Any]) async -> (adResult: T?,reson: String?)
+    func loadFullScreenAds<T: SwiftAds>(config: [String : Any]) async -> (adResult: T?,reson: String?)
+    func loadViewAds<T: SwiftAds>(config: [String : Any]) async -> (adResult: T?,reson: String?)
 }
 
 protocol AdsLoader {
-    associatedtype T : SwiftAds // 声明关联类型 T
-
     func preload()
     func startAutoFill()
     func stopAutoFill()

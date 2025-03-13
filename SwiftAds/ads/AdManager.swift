@@ -108,9 +108,9 @@ class AdManager {
     }
 }
 
-class ErrorLoader : AdsLoader {
-    func fetch() -> (any SwiftAds)? {
-        return nil
+class ErrorLoader: AdsLoader {
+    func fetch() {
+        return
     }
     
     func preload() {

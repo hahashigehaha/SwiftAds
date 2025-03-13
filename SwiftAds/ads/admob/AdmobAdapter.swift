@@ -8,7 +8,7 @@
 import GoogleMobileAds
 
 
-class AdmobAdapter<T: SwiftAds>: NSObject, AdsAdapter {
+class AdmobAdapter: NSObject, AdsAdapter {
             
     func initAdapter(config: [String : Any]) {
         MobileAds.shared.start { InitializationStatus in
@@ -16,7 +16,7 @@ class AdmobAdapter<T: SwiftAds>: NSObject, AdsAdapter {
         }
     }
     
-    func loadFullScreenAds(config: [String : Any]) async -> (adResult: T?, reson: String?) {
+    func loadFullScreenAds<T: SwiftAds>(config: [String : Any]) async -> (adResult: T?, reson: String?) {
         print("adamob adapter load fullscreen ads: \(config)")
         guard let adUnitId = config["adUnitId"] as? String else {
             return (nil,"ad unit is empty")
@@ -33,12 +33,12 @@ class AdmobAdapter<T: SwiftAds>: NSObject, AdsAdapter {
         return (nil,"")
     }
     
-    func loadViewAds(config: [String : Any]) async -> (adResult: T?,reson: String?) {
+    func loadViewAds<T: SwiftAds>(config: [String : Any]) async -> (adResult: T?,reson: String?) {
         
         return (nil,"")
     }
     
-    private func requestAppOpenAd(adUnitID: String) async -> (adResult: T?,reson: String){
+    private func requestAppOpenAd<T: SwiftAds>(adUnitID: String) async -> (adResult: T?,reson: String){
         do {
             let appOpenAd = try await AppOpenAd.load(with: adUnitID, request: Request())
             
@@ -51,7 +51,7 @@ class AdmobAdapter<T: SwiftAds>: NSObject, AdsAdapter {
         }
     }
     
-    private func requestInterstitialAd(adUnitID: String) async -> (adResult: T?,reson: String){
+    private func requestInterstitialAd<T: SwiftAds>(adUnitID: String) async -> (adResult: T?,reson: String){
         do {
             let interstitialAd = try await InterstitialAd.load(with: adUnitID, request: Request())
             
@@ -64,7 +64,7 @@ class AdmobAdapter<T: SwiftAds>: NSObject, AdsAdapter {
         }
     }
         
-    private func requestRewardAd(adUnitID: String) async -> (adResult: T?,reson: String){
+    private func requestRewardAd<T: SwiftAds>(adUnitID: String) async -> (adResult: T?,reson: String){
         do {
             let rewardAd = try await RewardedAd.load(with: adUnitID, request: Request())
             

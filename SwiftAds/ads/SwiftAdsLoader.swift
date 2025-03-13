@@ -5,11 +5,10 @@
 //  Created by lbe on 2025/3/5.
 //
 
-class SwiftAdsLoader<T: SwiftAds>: AdsLoader {
+class SwiftAdsLoader: AdsLoader {
     
     
     var adsPage: AdsPage
-    var test:Any?
     
     init(adsPage: AdsPage) {
         self.adsPage = adsPage
@@ -32,7 +31,6 @@ class SwiftAdsLoader<T: SwiftAds>: AdsLoader {
             let result = await loadInternal()
             print("swift ads loader fetch result : \(String(describing: result))")
             await MainActor.run {
-                test = result
                 if result is SwiftFullScreenAds {
                     (result as? SwiftFullScreenAds)?.show()
                 }
@@ -41,7 +39,7 @@ class SwiftAdsLoader<T: SwiftAds>: AdsLoader {
         
     }
     
-    private func loadInternal() async -> T? {
+    private func loadInternal<T: SwiftAds>() async -> T? {
         guard let adUnit = adsPage.admobUnits.first else {
             print("swift ads loader load internal ad unit is null")
             // TODO adunit空的打点
