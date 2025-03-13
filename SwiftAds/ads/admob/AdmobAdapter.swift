@@ -87,55 +87,46 @@ class AdmobAdapter: NSObject, AdsAdapter {
             return (nil,error.localizedDescription)
         }
     }
-    
+
     private func requestNativeAd(adUnitId: String,ttl: Int) async -> (adResult: SwiftViewAds?, reason: String) {
+        var adLoader: AdLoader?
+        let swiftViewAds = AdmobNativeAds(platformAdUnit: adUnitId, ttl: ttl)
         return await withCheckedContinuation { continuation in
-                let adLoader = AdLoader( adUnitID: adUnitId,rootViewController: nil,adTypes: [.native], options: nil)
-                adLoader.delegate = NativeLoadDelegate { adResult,reason in
-                    var swiftViewAds: AdmobNativeAds? = nil
-                    if adResult != nil {
-                        swiftViewAds = AdmobNativeAds(platformAdUnit: adUnitId, ttl: ttl)
-                        swiftViewAds?.setRawAd(nativeAd: adResult)
-                    }
+            adLoader = AdLoader( adUnitID: adUnitId,rootViewController: nil,adTypes: [.native], options: nil)
+            swiftViewAds.nativeLoadDelegate = NativeLoadDelegate { adResult,reason in
+                if adResult != nil {
+                    swiftViewAds.setRawAd(nativeAd: adResult)
                     continuation.resume(returning: (swiftViewAds,reason))
+                } else {
+                    continuation.resume(returning: (nil,reason))
                 }
-                adLoader.load(Request())
+                print("admob adapter request native ad callback")
             }
+            adLoader?.delegate = swiftViewAds.nativeLoadDelegate
+            adLoader?.load(Request())
+        }
     }
     
     private func requestBannerAd(adUnitId: String,ttl: Int) async -> (adResult: SwiftViewAds?, reason: String) {
-        let semaphore = DispatchSemaphore(value: 0)
-        await MainActor.run {
-            let bannerView = BannerView(adSize: AdSize())
-            bannerView.delegate = BannerLoadDelegate {adResult, reason in
-                var swiftViewAds: AdmobBannerAds? = nil
-                if adResult != nil {
-                    swiftViewAds = AdmobBannerAds(platformAdUnit: adUnitId, ttl: ttl)
-                    swiftViewAds?.setRawAd(bannerAd: adResult)
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.main.async {
+                let bannerView = BannerView(adSize: AdSize())
+                let bannerDelegate =  BannerLoadDelegate {adResult, reason in
+                    var swiftViewAds: AdmobBannerAds? = nil
+                    if adResult != nil {
+                        swiftViewAds = AdmobBannerAds(platformAdUnit: adUnitId, ttl: ttl)
+                        swiftViewAds?.setRawAd(bannerAd: adResult)
+                        continuation.resume(with: .success((swiftViewAds,"")))
+                    } else {
+                        continuation.resume(with: .success((nil,reason)))
+                    }
                 }
-                semaphore.signal() // 通知信号量
+                bannerView.delegate = bannerDelegate
+                bannerView.load(Request())
             }
-            bannerView.load(Request())
-        }
-        semaphore.wait() // 等待信号量
-        return (nil , "")
-    }
-    
-    class NativeLoadDelegate:NSObject, NativeAdLoaderDelegate {
-        var completion: (NativeAd?,String) -> Void
-        
-        init(completion: @escaping (NativeAd?,String) -> Void) {
-            self.completion = completion
-        }
-        
-        func adLoader(_ adLoader: AdLoader, didReceive nativeAd: NativeAd) {
-            completion(nativeAd,"")
-        }
-        
-        func adLoader(_ adLoader: AdLoader, didFailToReceiveAdWithError error: any Error) {
-            completion(nil,error.localizedDescription)
         }
     }
+
     
     class BannerLoadDelegate:NSObject,BannerViewDelegate {
         
@@ -146,10 +137,12 @@ class AdmobAdapter: NSObject, AdsAdapter {
         }
         
         func bannerViewDidReceiveAd(_ bannerView: BannerView) {
+            print("admob adapter banner load delegate success")
             completion(bannerView,"")
         }
         
         func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: any Error) {
+            print("admob adapter banner load delegate : \(error.localizedDescription)")
             completion(nil,error.localizedDescription)
         }
     }

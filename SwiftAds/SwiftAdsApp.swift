@@ -45,10 +45,11 @@ func initAds() {
 
 func loadAds() {
     Task {
-        let loader = AdManager.shared.globalAdsLoader(pageName: "interstitial_standalone")
-        let ad: SwiftFullScreenAds? = await loader.fetch()
+        let loader = AdManager.shared.globalAdsLoader(pageName: "native3")
+        let ad: SwiftViewAds? = await loader.fetch()
         await MainActor.run {
-            ad?.show()
+            let adView = ad?.view()
+            print("adview : \(adView == nil)")
         }
     }
 }

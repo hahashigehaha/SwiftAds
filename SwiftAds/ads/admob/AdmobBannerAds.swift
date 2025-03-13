@@ -19,9 +19,12 @@ class AdmobBannerAds: SwiftViewAds {
         setInfo(key: "ad_unit_id", info: self.platformAdUnit)
     }
     
-    
     func setRawAd(bannerAd: BannerView?) {
         self.rawAd = bannerAd
+    }
+    
+    override func view() -> UIView? {
+        return rawAd
     }
     
 }

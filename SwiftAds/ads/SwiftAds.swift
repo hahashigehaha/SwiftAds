@@ -5,6 +5,8 @@
 //  Created by lbe on 2025/3/5.
 //
 
+import UIKit
+
 protocol MiddlewareAds {
     var platform: String { get }
     var platformAdUnit: String {get}
