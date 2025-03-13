@@ -26,17 +26,30 @@ class AdmobFullScreenAds:NSObject, SwiftFullScreenAds {
         self.uuid = UUID().uuidString
     }
     
-    func setAppOpenAd(rawAd: Any) {
+    deinit {
+        print("admob fullscreen ads deinit")
+    }
+    
+    func setRawAd(rawAd: Any) {
         self.rawAd = rawAd
     }
     
     func show() {
         if rawAd is AppOpenAd {
             let appOpenAd = rawAd as! AppOpenAd
-            appOpenAd.fullScreenContentDelegate = DelegateTest.shared
+            appOpenAd.fullScreenContentDelegate = self
             appOpenAd.present(from: nil)
+        } else if rawAd is InterstitialAd {
+            let interstitialAd = rawAd as! InterstitialAd
+            interstitialAd.fullScreenContentDelegate = self
+            interstitialAd.present(from: nil)
+        } else if rawAd is RewardedAd {
+            let rewardAd = rawAd as! RewardedAd
+            rewardAd.fullScreenContentDelegate = self
+            rewardAd.present(from: nil) {
+                print("admob full screen reward ad reward")
+            }
         }
-        
     }
     
     func isExpired() -> Bool {
@@ -78,9 +91,6 @@ class AdmobFullScreenAds:NSObject, SwiftFullScreenAds {
 
 extension AdmobFullScreenAds: FullScreenContentDelegate {
     
-    func ad(_ ad: any FullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: any Error) {
-        print("App Open Ad failed to present with error: \(error.localizedDescription)")
-    }
     
     func adWillPresentFullScreenContent(_ ad: any FullScreenPresentingAd) {
         print("admob fullscreen ads will impression")

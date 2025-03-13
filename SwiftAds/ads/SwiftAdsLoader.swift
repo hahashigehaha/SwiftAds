@@ -5,9 +5,11 @@
 //  Created by lbe on 2025/3/5.
 //
 
-class SwiftAdsLoader: AdsLoader {
+class SwiftAdsLoader<T: SwiftAds>: AdsLoader {
+    
     
     var adsPage: AdsPage
+    var test:Any?
     
     init(adsPage: AdsPage) {
         self.adsPage = adsPage
@@ -25,20 +27,21 @@ class SwiftAdsLoader: AdsLoader {
         
     }
     
-    func fetch() -> SwiftAds? {
+    func fetch() {
         Task {
             let result = await loadInternal()
+            print("swift ads loader fetch result : \(String(describing: result))")
             await MainActor.run {
+                test = result
                 if result is SwiftFullScreenAds {
                     (result as? SwiftFullScreenAds)?.show()
                 }
             }
         }
         
-        return nil
     }
     
-    private func loadInternal() async ->SwiftAds? {
+    private func loadInternal() async -> T? {
         guard let adUnit = adsPage.admobUnits.first else {
             print("swift ads loader load internal ad unit is null")
             // TODO adunit空的打点
@@ -55,25 +58,19 @@ class SwiftAdsLoader: AdsLoader {
         adConfig.merge(adUnit.toDictionary(), uniquingKeysWith: { (current, _) in current })
         
         print("swift ads loader load internal will load ad  config: \(adConfig)")
-        guard let result: SwiftAds? = await {
+        let result: (adResult: T?, reason: String?) = await {
             switch adsPage.style {
-                case "fullscreen":
-                    return await adapter.loadFullScreenAds(config: adConfig)
-                case "view":
-                    return await adapter.loadViewAds(config: adConfig)
-                default:
-                    return nil
+            case "fullscreen":
+                return await adapter.loadFullScreenAds(config: adConfig)
+            case "view":
+                return await adapter.loadViewAds(config: adConfig)
+            default:
+                // TODO 错误的style打点
+                return (nil, "Invalid style")
             }
-        }() else {
-            //TODO 错误的 style，打点
-            return nil
-        }
+        }()
         
-        guard let result = result else {
-            return nil
-        }
-        
-        return result
+        return result.adResult
     }
     
     

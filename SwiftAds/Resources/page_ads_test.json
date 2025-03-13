@@ -19,7 +19,7 @@
       "admobUnits": [
         {
           "adType": "appopen",
-          "adUnitId": "ca-app-pub-3940256099942544/5575463023"
+          "adUnitId": "ca-app-pub-3940256099942544/55754630231"
         }
       ],
       "maxUnits": []
@@ -34,7 +34,7 @@
       "admobUnits": [
         {
           "adType": "interstitial",
-          "adUnitId": "ca-app-pub-3940256099942544/1033173712"
+          "adUnitId": "ca-app-pub-3940256099942544/4411468910"
         }
       ],
       "maxUnits": []

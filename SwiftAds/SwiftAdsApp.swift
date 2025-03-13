@@ -37,7 +37,7 @@ func initAds() {
 }
 
 func loadAds() {
-    let loader = AdManager.shared.globalAdsLoader(pageName: "splash_standalone")
+    let loader = AdManager.shared.globalAdsLoader(pageName: "interstitial")
     let ads = loader.fetch()
     
 }
