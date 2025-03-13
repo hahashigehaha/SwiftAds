@@ -5,6 +5,8 @@
 //  Created by lbe on 2025/3/5.
 //
 
+import ObjectiveC
+
 
 protocol MiddlewareAds {
     var platform: String { get }
@@ -12,9 +14,9 @@ protocol MiddlewareAds {
     var uuid: String {get}
 
     func setInfo(key: String, info: Any)
-    func getInfo(key: String) -> Any
+    func getInfo(key: String) -> Any?
     func allInfo() -> [String : Any]
-    func getRawAd() -> Any
+    func getRawAd() -> Any?
     func getUSDMicros() -> Double
     func setInteractionCallback(callback: InteractionCallback)
 }
@@ -34,21 +36,71 @@ protocol InteractionCallback {
 
 protocol AdsAdapter {
     func initAdapter(config: [String : Any])
-    func loadFullScreenAds<T: SwiftAds>(config: [String : Any]) async -> (adResult: T?,reson: String?)
-    func loadViewAds<T: SwiftAds>(config: [String : Any]) async -> (adResult: T?,reson: String?)
+    func loadFullScreenAds(config: [String : Any]) async -> (adResult: SwiftFullScreenAds?,reson: String?)
+    func loadViewAds(config: [String : Any]) async -> (adResult: SwiftViewAds?,reson: String?)
 }
 
 protocol AdsLoader {
-    func preload()
     func startAutoFill()
     func stopAutoFill()
-    func fetch()
+    func fetch<T: SwiftAds>() async -> T?
 }
 
-protocol SwiftFullScreenAds: SwiftAds {
-    func show()
+class SwiftAdImpl:NSObject, SwiftAds {
+    func isExpired() -> Bool {
+        return false
+    }
+    
+    func ttl() -> Int {
+        return 0
+    }
+    
+    func expireTimestamp() -> Int {
+        return 0
+    }
+    
+    var platform: String = ""
+    
+    var platformAdUnit: String = ""
+    
+    var uuid: String = ""
+    
+    func setInfo(key: String, info: Any) {
+        
+    }
+    
+    func getInfo(key: String) -> Any? {
+        return nil
+    }
+    
+    func allInfo() -> [String : Any] {
+        return [String : Any]()
+    }
+    
+    func getRawAd() -> Any? {
+        return nil
+    }
+    
+    func getUSDMicros() -> Double {
+        return 0
+    }
+    
+    func setInteractionCallback(callback: any InteractionCallback) {
+    }
+    
 }
 
-protocol SwiftViewAds: SwiftAds {
-    func view()
+class SwiftFullScreenAds: SwiftAdImpl {
+    func show() {}
+}
+
+class SwiftViewAds: SwiftAdImpl {
+    func view() {}
+}
+
+protocol SwiftAdContentDelegate {
+    associatedtype T: SwiftAds
+    
+    func adLoaded(result: T)
+    func adFailed()
 }

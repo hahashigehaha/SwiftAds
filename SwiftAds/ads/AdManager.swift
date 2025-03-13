@@ -109,12 +109,8 @@ class AdManager {
 }
 
 class ErrorLoader: AdsLoader {
-    func fetch() {
-        return
-    }
-    
-    func preload() {
-        
+    func fetch<T>() async -> T? where T : SwiftAds {
+        return nil
     }
     
     func startAutoFill() {

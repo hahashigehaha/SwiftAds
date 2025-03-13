@@ -8,20 +8,15 @@
 import GoogleMobileAds
 import Foundation
 
-class AdmobFullScreenAds:NSObject, SwiftFullScreenAds {
-    
-    var platform: String
-    
-    var platformAdUnit: String
-    
-    var uuid: String
-    
+class AdmobFullScreenAds:SwiftFullScreenAds {
+        
     var interactionCallback: InteractionCallback?
     
     var rawAd: Any?
     
     init(platformAdUnit: String) {
-        self.platform = "admob"
+        super.init()
+        platform = "admob"
         self.platformAdUnit = platformAdUnit
         self.uuid = UUID().uuidString
     }
@@ -34,7 +29,7 @@ class AdmobFullScreenAds:NSObject, SwiftFullScreenAds {
         self.rawAd = rawAd
     }
     
-    func show() {
+    override func show() {
         if rawAd is AppOpenAd {
             let appOpenAd = rawAd as! AppOpenAd
             appOpenAd.fullScreenContentDelegate = self
@@ -52,39 +47,7 @@ class AdmobFullScreenAds:NSObject, SwiftFullScreenAds {
         }
     }
     
-    func isExpired() -> Bool {
-        return false
-    }
-    
-    func ttl() -> Int {
-        return 0
-    }
-    
-    func expireTimestamp() -> Int {
-        return 0
-    }
-    
-    func setInfo(key: String, info: Any) {
-        
-    }
-    
-    func getInfo(key: String) -> Any {
-        return ""
-    }
-    
-    func allInfo() -> [String : Any] {
-        return [String: Any]()
-    }
-    
-    func getRawAd() -> Any {
-        return ""
-    }
-    
-    func getUSDMicros() -> Double {
-        return 0
-    }
-    
-    func setInteractionCallback(callback: any InteractionCallback) {
+    override func setInteractionCallback(callback: any InteractionCallback) {
         self.interactionCallback = callback
     }
 }

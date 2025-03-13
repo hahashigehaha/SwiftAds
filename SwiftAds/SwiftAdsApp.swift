@@ -37,9 +37,13 @@ func initAds() {
 }
 
 func loadAds() {
-    let loader = AdManager.shared.globalAdsLoader(pageName: "interstitial")
-    let ads = loader.fetch()
-    
+    Task {
+        let loader = AdManager.shared.globalAdsLoader(pageName: "interstitial_standalone")
+        let ad: SwiftFullScreenAds? = await loader.fetch()
+        await MainActor.run {
+            ad?.show()
+        }
+    }
 }
 
 func readJSONStringFromResources(filename: String) -> String? {
