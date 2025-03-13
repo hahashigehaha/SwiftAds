@@ -22,6 +22,8 @@ class AdManager {
     private var loaderMap: [String : AdsLoader] = [String : AdsLoader]()
     private var adapterMap: [String : AdsAdapter] = [String : AdsAdapter]()
     
+    private var eventDelegates = [SwiftEventDelegate]()
+    
     func getOrCreatePlatformAdapter(platform: String) -> AdsAdapter? {
         guard let adapter = adapterMap[platform] else {
             return createNewAdapter(platform: platform)
@@ -31,7 +33,7 @@ class AdManager {
     }
     
     private func createNewAdapter(platform: String) -> AdsAdapter {
-        var platformConfig = if (platform == "admob") {
+        let platformConfig = if (platform == "admob") {
             adsConfig.admobPlatform.toDictionary()
         } else {
             adsConfig.maxPlatform.toDictionary()
@@ -57,12 +59,12 @@ class AdManager {
     
     private func createAdsLoader(pageName: String,global: Bool) -> AdsLoader {
         guard !pageName.isEmpty else {
-            // TODO: 空 pageName 打点
+            notifyEvent(event: AdsConstant.ST_AD_FETCH_RESULT, eventParams: ["reson":"page name is null","page_name":pageName])
             return ErrorLoader()
         }
 
         guard let page = adsConfig.adsPages.first(where: {$0.pageName == pageName} ) else {
-            // TODO 空page 打点
+            notifyEvent(event: AdsConstant.ST_AD_FETCH_RESULT, eventParams: ["reson":"page not found","page_name":pageName])
             return ErrorLoader()
         }
         
@@ -91,7 +93,20 @@ class AdManager {
         self.serverAdsConfig = adsConfig
     }
     
-    func decodeJSON<T: Decodable>(_ jsonString: String, as type: T.Type) -> T? {
+    func addEventDelegate(_ delegate: SwiftEventDelegate) {
+        eventDelegates.append(delegate)
+    }
+    
+    func notifyEvent(event: String, eventParams: [String: Any]?) {
+        let params = eventParams ?? [:]
+
+        // 通知所有 delegate
+        eventDelegates.forEach { delegate in
+            delegate.onEvent(eventName: event, params: params)
+        }
+    }
+    
+    private func decodeJSON<T: Decodable>(_ jsonString: String, as type: T.Type) -> T? {
         guard let jsonData = jsonString.data(using: .utf8) else {
             print("Failed to convert JSON string to Data")
             return nil

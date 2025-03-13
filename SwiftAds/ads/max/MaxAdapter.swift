@@ -5,11 +5,11 @@
 //  Created by lbe on 2025/3/11.
 //
 class MaxAdapter: AdsAdapter {
-    func loadFullScreenAds(config: [String : Any]) async -> (adResult: SwiftFullScreenAds?, reson: String?) {
+    func loadFullScreenAds(config: [String : Any]) async -> (adResult: SwiftFullScreenAds?, reason: String) {
         return (nil,"")
     }
     
-    func loadViewAds(config: [String : Any]) async -> (adResult: SwiftViewAds?, reson: String?) {
+    func loadViewAds(config: [String : Any]) async -> (adResult: SwiftViewAds?, reason: String) {
         return (nil,"")
     }
     

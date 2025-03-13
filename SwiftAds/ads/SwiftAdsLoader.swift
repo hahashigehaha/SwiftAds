@@ -14,7 +14,9 @@ class SwiftAdsLoader: AdsLoader {
     
     var maxLoadCount: Int = 0
     var maxLoadConcurrency: Int = 0
-        
+    
+    let adsManager = AdManager.shared
+                
     init(adsPage: AdsPage) {
         self.adsPage = adsPage
         self.maxLoadCount = adsPage.preloadFillCount
@@ -22,11 +24,20 @@ class SwiftAdsLoader: AdsLoader {
     }
     
     func startAutoFill() {
-        if autoFill {
-            return
-        }
+        guard !autoFill else { return }
         autoFill = true
         
+        // 开启异步检查任务，一分钟检查一次，如果广告过期及时补充新广告
+        Task {
+            while(true) {
+                cacheAdList.removeAll { $0.isExpired() }
+                checkAutoFill()
+                try await Task.sleep(nanoseconds: 60 * 1_000_000_000)
+                if !autoFill {
+                    break
+                }
+            }
+        }
     }
     
     func stopAutoFill() {
@@ -40,8 +51,10 @@ class SwiftAdsLoader: AdsLoader {
             cacheAdList.removeAll { $0.isExpired() }
             
             if !cacheAdList.isEmpty {
+                let ad = cacheAdList.removeFirst() as? T
                 checkAutoFill()
-                return cacheAdList.removeFirst() as? T
+                adsManager.notifyEvent(event: AdsConstant.ST_AD_FETCH_RESULT, eventParams: buildEventParams(ad: ad, extraParams: ["from":"cache","result":true,"page_name":adsPage.pageName]))
+                return ad
             }
         }
         
@@ -50,44 +63,55 @@ class SwiftAdsLoader: AdsLoader {
             let task = runningTaskList.removeFirst()
             let result = await task.value
             if result != nil {
+                let ad = result as? T
                 checkAutoFill()
-                return result as? T
+                adsManager.notifyEvent(event: AdsConstant.ST_AD_FETCH_RESULT, eventParams: buildEventParams(ad: ad, extraParams: ["from":"running","result":true]))
+                return ad
             }
         }
         
-        return await loadInternal() as? T
+        let ad = await loadInternal() as? T
+        checkAutoFill()
+        adsManager.notifyEvent(event: AdsConstant.ST_AD_FETCH_RESULT, eventParams: buildEventParams(ad: ad, extraParams: ["from":"load","result": ad != nil]))
+        return ad
     }
     
     private func loadInternal() async -> SwiftAds? {
         guard let adUnit = adsPage.admobUnits.first else {
             print("swift ads loader load internal ad unit is null")
-            // TODO adunit空的打点
+            adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: nil, extraParams: ["reason":"adUnit not found","result":false]))
             return nil
         }
         
         guard let adapter = AdManager.shared.getOrCreatePlatformAdapter(platform: adUnit.platform) else {
             print("swift ads loader load internal adapter is null")
-            //TODO adapter不存在时打点
+            adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: nil, extraParams: ["reason":"unsupported platform","result":false]))
             return nil
         }
         
         var adConfig: [String : Any] = [String: Any]()
         adConfig.merge(adUnit.toDictionary(), uniquingKeysWith: { (current, _) in current })
+        adConfig["ttl"] = adsPage.ttl
         
         print("swift ads loader load internal will load ad  config: \(adConfig)")
         
         var realAdObj: SwiftAds?
+        var reason: String = ""
         if adsPage.style == "fullscreen" {
             let result = await adapter.loadFullScreenAds(config: adConfig)
             realAdObj = result.adResult
+            reason = result.reason
         } else if adsPage.style == "view" {
             let result = await adapter.loadViewAds(config: adConfig)
             realAdObj = result.adResult
+            reason = result.reason
         } else {
+            adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: nil, extraParams: ["reason":"unsupported style","result":false]))
             // TODO 错误的style打点
             return nil
         }
         
+        adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: realAdObj, extraParams: ["reason":reason,"result":realAdObj != nil]))
         return realAdObj
     }
     
@@ -99,7 +123,7 @@ class SwiftAdsLoader: AdsLoader {
     
     private func fillPool() {
         Task {
-            while( maxLoadCount > cacheAdList.count) {
+            while( maxLoadCount > (cacheAdList.count + runningTaskList.count) && maxLoadConcurrency > runningTaskList.count) {
                 let task = Task { return await loadInternal() }
                 runningTaskList.append(task)
                 let result = await task.value
@@ -111,6 +135,25 @@ class SwiftAdsLoader: AdsLoader {
                 }
             }
         }
+    }
+        
+    private func buildEventParams(ad: SwiftAds?, extraParams: [String: Any]?) -> [String: Any] {
+        var params = extraParams ?? [:]
+
+        // 合并 ad.allInfo() 字典
+        if let adInfo = ad?.allInfo() {
+            params.merge(adInfo) { (current, _) in current }
+        }
+        
+        params["page_name"] = adsPage.pageName
+        params["config_version"] = adsManager.getConfigVersion()
+        params["style"] = adsPage.style
+
+        return params
+    }
+    
+    private func checkCacheAdList() {
+        cacheAdList.removeAll { $0.isExpired() }
     }
     
 }

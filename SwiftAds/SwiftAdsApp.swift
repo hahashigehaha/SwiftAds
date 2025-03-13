@@ -14,8 +14,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         initAds()
+        AdManager.shared.addEventDelegate(self)
         loadAds()
         return true
+    }
+}
+
+extension AppDelegate: SwiftEventDelegate {
+    func onEvent(eventName: String, params: [String : Any]) {
+        print("event: \(eventName)  params: \(params)")
     }
 }
 

@@ -14,11 +14,13 @@ class AdmobFullScreenAds:SwiftFullScreenAds {
     
     var rawAd: Any?
     
-    init(platformAdUnit: String) {
+    init(platformAdUnit: String,ttl: Int) {
         super.init()
         platform = "admob"
+        self.ttl = ttl
         self.platformAdUnit = platformAdUnit
-        self.uuid = UUID().uuidString
+        setInfo(key: "platform", info: self.platform)
+        setInfo(key: "ad_unit_id", info: self.platformAdUnit)
     }
     
     deinit {
