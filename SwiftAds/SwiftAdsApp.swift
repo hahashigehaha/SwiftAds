@@ -14,8 +14,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         initAds()
-        AdManager.shared.addEventDelegate(self)
-        loadAds()
+        AdsManager.shared.addEventDelegate(self)
+        test()
         return true
     }
 }
@@ -39,8 +39,18 @@ struct MyApp: App {
 
 func initAds() {
     let adsConfigJson = readJSONStringFromResources(filename: "page_ads_test") ?? ""
-    AdManager.shared.updateAdsConfig(configJson: adsConfigJson)
-    print("current ads config version : \(AdManager.shared.getConfigVersion())")
+    AdsManager.shared.updateAdsConfig(configJson: adsConfigJson)
+    print("current ads config version : \(AdsManager.shared.getConfigVersion())")
+}
+
+private func test() {
+    // 开启异步检查任务，一分钟检查一次，如果广告过期及时补充新广告
+    Task {
+        while(true) {
+            loadAds()
+            try await Task.sleep(nanoseconds: 2 * 60 * 1_000_000_000)
+        }
+    }
 }
 
 var testAd: SwiftFullScreenAds?
@@ -48,7 +58,7 @@ var fullscreenDelegate: FullScreenInteractionDelegate?
 
 func loadAds() {
     Task {
-        let loader = AdManager.shared.globalAdsLoader(pageName: "interstitial_standalone")
+        let loader = AdsManager.shared.globalAdsLoader(pageName: "interstitial_standalone")
         testAd = await loader.fetch()
         await MainActor.run {
             testAd?.setInteractionCallback(callback: fullscreenDelegate)

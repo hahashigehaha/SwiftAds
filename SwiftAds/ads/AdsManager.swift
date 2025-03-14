@@ -6,9 +6,9 @@
 //
 import Foundation
 
-class AdManager {
+class AdsManager {
     
-    static let shared = AdManager()
+    static let shared = AdsManager()
     
     private let defaultAdsConfig: AdsConfig = DEFAULT_ADS_CONFIG
     private var serverAdsConfig: AdsConfig?
@@ -25,10 +25,13 @@ class AdManager {
     private var eventDelegates = [SwiftEventDelegate]()
     
     func getOrCreatePlatformAdapter(platform: String) -> AdsAdapter? {
-        guard let adapter = adapterMap[platform] else {
-            return createNewAdapter(platform: platform)
+        print("ads manager create platform adapter : \(adapterMap.count)  platform: \(platform) contains: \(adapterMap.contains(where: { $0.key == platform }))")
+
+        var adapter = adapterMap[platform]
+        if adapter == nil {
+            adapter = createNewAdapter(platform: platform)
+            adapterMap[platform] = adapter
         }
-        adapterMap[platform] = adapter
         return adapter
     }
     

@@ -17,7 +17,7 @@ class SwiftAdsLoader: AdsLoader {
     var maxLoadCount: Int = 0
     var maxLoadConcurrency: Int = 0
     
-    let adsManager = AdManager.shared
+    let adsManager = AdsManager.shared
                 
     init(adsPage: AdsPage) {
         self.adsPage = adsPage
@@ -48,7 +48,7 @@ class SwiftAdsLoader: AdsLoader {
     }
     
     func fetch<T: SwiftAds>() async -> T? where T: SwiftAds {
-        
+        let adStartTime = Date().timeIntervalSince1970
         // 优先检查缓存集合中是否有可用的广告，有则返回
         if !cacheAdList.isEmpty {
             cacheAdList.removeAll { $0.isExpired() }
@@ -56,7 +56,8 @@ class SwiftAdsLoader: AdsLoader {
             if !cacheAdList.isEmpty {
                 let ad = cacheAdList.removeFirst() as? T
                 checkAutoFill()
-                adsManager.notifyEvent(event: AdsConstant.ST_AD_FETCH_RESULT, eventParams: buildEventParams(ad: ad, extraParams: ["from":"cache","result":true,"page_name":adsPage.pageName]))
+                let loadTime = Int((Date().timeIntervalSince1970 - adStartTime) * 1000)
+                adsManager.notifyEvent(event: AdsConstant.ST_AD_FETCH_RESULT, eventParams: buildEventParams(ad: ad, extraParams: ["from":"cache","result":true,"page_name":adsPage.pageName,"load_time":loadTime]))
                 return ad
             }
         }
@@ -68,19 +69,20 @@ class SwiftAdsLoader: AdsLoader {
             if result != nil {
                 let ad = result as? T
                 checkAutoFill()
-                adsManager.notifyEvent(event: AdsConstant.ST_AD_FETCH_RESULT, eventParams: buildEventParams(ad: ad, extraParams: ["from":"running","result":true]))
+                let loadTime = Int((Date().timeIntervalSince1970 - adStartTime) * 1000)
+                adsManager.notifyEvent(event: AdsConstant.ST_AD_FETCH_RESULT, eventParams: buildEventParams(ad: ad, extraParams: ["from":"running","result":true,"load_time":loadTime]))
                 return ad
             }
         }
         
         let ad = await loadInternal() as? T
         checkAutoFill()
-        adsManager.notifyEvent(event: AdsConstant.ST_AD_FETCH_RESULT, eventParams: buildEventParams(ad: ad, extraParams: ["from":"load","result": ad != nil]))
+        let loadTime = Int((Date().timeIntervalSince1970 - adStartTime) * 1000)
+        adsManager.notifyEvent(event: AdsConstant.ST_AD_FETCH_RESULT, eventParams: buildEventParams(ad: ad, extraParams: ["from":"load","result": ad != nil,"load_time":loadTime]))
         return ad
     }
     
     private func loadInternal() async -> SwiftAds? {
-        print("swift ads loader load internal start \(currentTime())" )
         let adStartTime = Date().timeIntervalSince1970
         guard let adUnit = adsPage.admobUnits.first else {
             print("swift ads loader load internal ad unit is null")
@@ -88,53 +90,53 @@ class SwiftAdsLoader: AdsLoader {
             return nil
         }
         
-        guard let adapter = AdManager.shared.getOrCreatePlatformAdapter(platform: adUnit.platform) else {
+        guard let adapter = AdsManager.shared.getOrCreatePlatformAdapter(platform: adUnit.platform) else {
             print("swift ads loader load internal adapter is null")
             adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: nil, extraParams: ["reason":"unsupported platform","result":false]))
             return nil
         }
         
-        var timeOutMs = adsPage.timeOutMs
+        let timeOutMs = adsPage.timeOutMs
         var adConfig: [String : Any] = [String: Any]()
         adConfig.merge(adUnit.toDictionary(), uniquingKeysWith: { (current, _) in current })
         adConfig["ttl"] = adsPage.ttl
-        
-        print("swift ads loader load internal will load ad  config: \(adConfig)")
-        
+                
         var realAdObj: SwiftAds?
         var reason: String = ""
         
         do {
-            let taskResult = try await withTimeout(seconds: 10) {
-                var adResult: SwiftAds?
-                var reason: String = ""
-                if self.adsPage.style == "fullscreen" {
-                    let result = await adapter.loadFullScreenAds(config: adConfig)
-                    adResult = result.adResult
-                    reason = result.reason
-                } else if self.adsPage.style == "view" {
-                    let result = await adapter.loadViewAds(config: adConfig)
-                    adResult = result.adResult
-                    reason = result.reason
-                } else {
-                    self.adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: self.buildEventParams(ad: nil, extraParams: ["reason":"unsupported style","result":false]))
-                    adResult = nil
-                }
-                return (adResult,reason)
+            let taskResult = try await withTimeout(millisecond: timeOutMs) {
+                try await self.performAdLoad(with: adapter, config: adConfig)
             }
-            realAdObj = taskResult.0
-            reason = taskResult.1
+            realAdObj = taskResult?.0
+            reason = taskResult?.1 ?? ""
         }  catch is TimeoutError {
             reason = "timeout"
         } catch {
             reason = "unknow error: \(error.localizedDescription)"
         }
         
-        print("swift ads loader load internal end \(currentTime())")
-        
         let loadTime = Int((Date().timeIntervalSince1970 - adStartTime) * 1000)
         adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: realAdObj, extraParams: ["reason":reason,"result":realAdObj != nil,"load_time":loadTime]))
         return realAdObj
+    }
+    
+    private func performAdLoad(with adapter: AdsAdapter, config: [String: Any]) async throws -> (SwiftAds?, String) {
+        var adResult: SwiftAds?
+        var reason: String = ""
+        if self.adsPage.style == "fullscreen" {
+            let result = await adapter.loadFullScreenAds(config: config)
+            adResult = result.adResult
+            reason = result.reason
+        } else if self.adsPage.style == "view" {
+            let result = await adapter.loadViewAds(config: config)
+            adResult = result.adResult
+            reason = result.reason
+        } else {
+            self.adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: self.buildEventParams(ad: nil, extraParams: ["reason":"unsupported style","result":false]))
+            adResult = nil
+        }
+        return (adResult,reason)
     }
     
     private func checkAutoFill() {
@@ -153,13 +155,11 @@ class SwiftAdsLoader: AdsLoader {
 
                 runningTaskList.removeAll { $0 == task }
                 
-                if result != nil {
-                    cacheAdList.append(result!)
-                }
+                enqueueCache(ads: result)
             }
         }
     }
-        
+    
     private func buildEventParams(ad: SwiftAds?, extraParams: [String: Any]?) -> [String: Any] {
         var params = extraParams ?? [:]
 
@@ -178,26 +178,33 @@ class SwiftAdsLoader: AdsLoader {
         cacheAdList.removeAll { $0.isExpired() }
     }
     
+    private func enqueueCache(ads: SwiftAds?) {
+        guard let cache = ads else {
+            return
+        }
+        cacheAdList.removeAll(where: { $0.isExpired() })
+        cacheAdList.append(cache)
+        print("swift ads loader enqueue cache : \(cache.uuid)  cache size: \(cacheAdList.count)")
+    }
+    
     private func currentTime() -> Int {
         return Int( Date().timeIntervalSince1970 )
     }
     
     private func withTimeout<T>(
-        seconds: TimeInterval,
+        millisecond: Int,
         operation: @escaping () async throws -> T
-    ) async throws -> T {
+    ) async throws -> T? {
         return try await withThrowingTaskGroup(of: T.self) { group in
             // 启动任务
             group.addTask {
                 return try await operation()
             }
-
             // 启动超时任务
             group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                try await Task.sleep(nanoseconds: UInt64(millisecond * 1_000_000))
                 throw TimeoutError()
             }
-
             // 等待第一个完成的任务
             let result = try await group.next()!
             group.cancelAll() // 取消其他任务

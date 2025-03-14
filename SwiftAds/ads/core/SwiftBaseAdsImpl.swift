@@ -22,7 +22,7 @@ class SwiftBaseAdsImpl:NSObject, SwiftAds{
     
     var interactionCallback: InteractionCallback?
     
-    var adsManager: AdManager?
+    var adsManager: AdsManager?
     
     init(platformAdUnit: String,ttl: Int) {
         super.init()
@@ -31,7 +31,7 @@ class SwiftBaseAdsImpl:NSObject, SwiftAds{
         
         self.uuid = UUID().uuidString
         self.loadEndTime = currentTimeMillis()
-        adsManager = AdManager.shared
+        adsManager = AdsManager.shared
         
         setInfo(key: "uuid", info: self.uuid)
         setInfo(key: "platform", info: self.platform)
@@ -100,19 +100,19 @@ class InteractionCallbackWrapper: InteractionCallback {
     }
     
     private func notifyClick() {
-        AdManager.shared.notifyEvent(event: AdsConstant.ST_AD_CLICK, eventParams: buildEventParams(extraParams: nil))
+        AdsManager.shared.notifyEvent(event: AdsConstant.ST_AD_CLICK, eventParams: buildEventParams(extraParams: nil))
     }
     
     private func notifyImpression() {
-        AdManager.shared.notifyEvent(event: AdsConstant.ST_AD_IMPRESSION, eventParams: buildEventParams(extraParams: nil))
+        AdsManager.shared.notifyEvent(event: AdsConstant.ST_AD_IMPRESSION, eventParams: buildEventParams(extraParams: nil))
     }
     
     private func notifyPaid() {
-        AdManager.shared.notifyEvent(event: AdsConstant.ST_AD_PAID, eventParams: buildEventParams(extraParams: nil))
+        AdsManager.shared.notifyEvent(event: AdsConstant.ST_AD_PAID, eventParams: buildEventParams(extraParams: nil))
     }
     
     private func notifyClose() {
-        AdManager.shared.notifyEvent(event: AdsConstant.ST_AD_CLOSE, eventParams: buildEventParams(extraParams: nil) )
+        AdsManager.shared.notifyEvent(event: AdsConstant.ST_AD_CLOSE, eventParams: buildEventParams(extraParams: nil) )
     }
     
     private func buildEventParams(extraParams: [String: Any]?) -> [String: Any] {
