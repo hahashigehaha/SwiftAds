@@ -5,6 +5,8 @@
 //  Created by lbe on 2025/3/5.
 //
 
+import Foundation
+
 class SwiftAdsLoader: AdsLoader {
     
     var adsPage: AdsPage
@@ -31,6 +33,7 @@ class SwiftAdsLoader: AdsLoader {
         Task {
             while(true) {
                 cacheAdList.removeAll { $0.isExpired() }
+                print("swift ads loader start fill recyle check fill")
                 checkAutoFill()
                 try await Task.sleep(nanoseconds: 60 * 1_000_000_000)
                 if !autoFill {
@@ -77,6 +80,7 @@ class SwiftAdsLoader: AdsLoader {
     }
     
     private func loadInternal() async -> SwiftAds? {
+        let adStartTime = Date().timeIntervalSince1970
         guard let adUnit = adsPage.admobUnits.first else {
             print("swift ads loader load internal ad unit is null")
             adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: nil, extraParams: ["reason":"adUnit not found","result":false]))
@@ -89,6 +93,7 @@ class SwiftAdsLoader: AdsLoader {
             return nil
         }
         
+        var timeOutMs = adsPage.timeOutMs
         var adConfig: [String : Any] = [String: Any]()
         adConfig.merge(adUnit.toDictionary(), uniquingKeysWith: { (current, _) in current })
         adConfig["ttl"] = adsPage.ttl
@@ -97,25 +102,45 @@ class SwiftAdsLoader: AdsLoader {
         
         var realAdObj: SwiftAds?
         var reason: String = ""
-        if adsPage.style == "fullscreen" {
-            let result = await adapter.loadFullScreenAds(config: adConfig)
-            realAdObj = result.adResult
-            reason = result.reason
-        } else if adsPage.style == "view" {
-            let result = await adapter.loadViewAds(config: adConfig)
-            realAdObj = result.adResult
-            reason = result.reason
-        } else {
-            adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: nil, extraParams: ["reason":"unsupported style","result":false]))
-            // TODO 错误的style打点
-            return nil
+        let requestTask = Task {
+            var adResult: SwiftAds?
+            var reason: String = ""
+            if adsPage.style == "fullscreen" {
+                let result = await adapter.loadFullScreenAds(config: adConfig)
+                adResult = result.adResult
+                reason = result.reason
+            } else if adsPage.style == "view" {
+                let result = await adapter.loadViewAds(config: adConfig)
+                adResult = result.adResult
+                reason = result.reason
+            } else {
+                adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: nil, extraParams: ["reason":"unsupported style","result":false]))
+                adResult = nil
+            }
+            return (adResult,reason)
         }
         
-        adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: realAdObj, extraParams: ["reason":reason,"result":realAdObj != nil]))
+        let timeOutTask = Task {
+            try await Task.sleep(nanoseconds: UInt64(timeOutMs) * NSEC_PER_SEC)
+            requestTask.cancel()
+        }
+        
+        do {
+            let taskResult = await requestTask.value
+            realAdObj = taskResult.0
+            reason = taskResult.1
+            timeOutTask.cancel()
+        } catch {
+            print("swift ads loader load internal time out : \(error.localizedDescription)")
+        }
+        
+        let loadTime = Int((Date().timeIntervalSince1970 - adStartTime) * 1000)
+        adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: realAdObj, extraParams: ["reason":reason,"result":realAdObj != nil,"load_time":loadTime]))
         return realAdObj
     }
     
     private func checkAutoFill() {
+        print("swift ads loader check auto fill : \(autoFill) cache count: \(cacheAdList.count)  running count : \(runningTaskList.count)")
         if autoFill {
             fillPool()
         }
@@ -146,7 +171,6 @@ class SwiftAdsLoader: AdsLoader {
         }
         
         params["page_name"] = adsPage.pageName
-        params["config_version"] = adsManager.getConfigVersion()
         params["style"] = adsPage.style
 
         return params

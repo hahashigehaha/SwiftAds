@@ -23,6 +23,11 @@ class AdmobAdapter: NSObject, AdsAdapter {
         let adType = config["adType"] as? String
         let ttl = config["ttl"] as? Int ?? 1800000
         
+        do {
+            try await Task.sleep(nanoseconds: UInt64(20000) * NSEC_PER_SEC)
+        } catch {
+        }
+        
         if adType == "interstitial" {
             return await requestInterstitialAd(adUnitID: adUnitId,ttl: ttl)
         } else if adType == "appopen" {
@@ -65,7 +70,7 @@ class AdmobAdapter: NSObject, AdsAdapter {
     private func requestInterstitialAd(adUnitID: String,ttl: Int) async -> (adResult: SwiftFullScreenAds?,reason: String){
         do {
             let interstitialAd = try await InterstitialAd.load(with: adUnitID, request: Request())
-            
+
             let swiftFullScreenAds = AdmobFullScreenAds(platformAdUnit: adUnitID,ttl: ttl)
             swiftFullScreenAds.setRawAd(rawAd: interstitialAd)
             return (swiftFullScreenAds,"")

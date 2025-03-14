@@ -7,21 +7,25 @@
 
 import UIKit
 
-protocol MiddlewareAds {
+protocol SwiftAds {
     var platform: String { get }
     var platformAdUnit: String {get}
     var uuid: String {get}
 
+    func isExpired() -> Bool
     func setInfo(key: String, info: Any)
     func getInfo(key: String) -> Any?
     func allInfo() -> [String : Any]
-    func getRawAd() -> Any?
     func getUSDMicros() -> Double
-    func setInteractionCallback(callback: InteractionCallback)
+    func setInteractionCallback(callback: InteractionCallback?)
 }
 
-protocol SwiftAds : MiddlewareAds {
-    func isExpired() -> Bool
+protocol FullScreenAds {
+    func show()
+}
+
+protocol ViewAds {
+    func view() -> UIView?
 }
 
 protocol InteractionCallback {
@@ -43,11 +47,11 @@ protocol AdsLoader {
     func fetch<T: SwiftAds>() async -> T?
 }
 
-class SwiftFullScreenAds: SwiftBaseAdsImpl {
+class SwiftFullScreenAds: SwiftBaseAdsImpl, FullScreenAds {
     func show() {}
 }
 
-class SwiftViewAds: SwiftBaseAdsImpl {
+class SwiftViewAds: SwiftBaseAdsImpl, ViewAds {
     func view() -> UIView? {
         return nil
     }

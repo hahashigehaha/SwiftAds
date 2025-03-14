@@ -98,7 +98,8 @@ class AdManager {
     }
     
     func notifyEvent(event: String, eventParams: [String: Any]?) {
-        let params = eventParams ?? [:]
+        var params = eventParams ?? [:]
+        params["config_version"] = getConfigVersion()
 
         // 通知所有 delegate
         eventDelegates.forEach { delegate in

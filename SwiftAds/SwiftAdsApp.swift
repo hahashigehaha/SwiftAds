@@ -43,13 +43,17 @@ func initAds() {
     print("current ads config version : \(AdManager.shared.getConfigVersion())")
 }
 
+var testAd: SwiftFullScreenAds?
+var fullscreenDelegate: FullScreenInteractionDelegate?
+
 func loadAds() {
     Task {
-        let loader = AdManager.shared.globalAdsLoader(pageName: "native3")
-        let ad: SwiftViewAds? = await loader.fetch()
+        let loader = AdManager.shared.globalAdsLoader(pageName: "interstitial_standalone")
+        testAd = await loader.fetch()
         await MainActor.run {
-            let adView = ad?.view()
-            print("adview : \(adView == nil)")
+            testAd?.setInteractionCallback(callback: fullscreenDelegate)
+            testAd?.setInfo(key: "scene", info: "scene_name")
+            testAd?.show()
         }
     }
 }
@@ -69,4 +73,24 @@ func readJSONStringFromResources(filename: String) -> String? {
         print("File not found in Resources folder")
     }
     return nil
+}
+
+class FullScreenInteractionDelegate: InteractionCallback {
+    func onAdClicked() {
+        print("full screen ad click")
+    }
+    
+    func onAdClosed() {
+        print("full screen ad close")
+    }
+    
+    func onAdImpression() {
+        print("full screen ad impression")
+    }
+    
+    func onAdsPaid() {
+        print("full screen ad paid")
+    }
+    
+    
 }

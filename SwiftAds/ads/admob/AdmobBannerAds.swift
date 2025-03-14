@@ -10,24 +10,32 @@ class AdmobBannerAds: SwiftViewAds {
     
     private var rawAd: BannerView?
     var bannerLoadDelegate: BannerLoadDelegate?
+    var adValue: AdValue?
     
-    init(platformAdUnit: String,ttl: Int) {
-        super.init()
+    override init(platformAdUnit: String,ttl: Int) {
+        super.init(platformAdUnit: platformAdUnit, ttl: ttl)
         platform = "admob"
-        self.ttl = ttl
-        self.platformAdUnit = platformAdUnit
-        setInfo(key: "platform", info: self.platform)
-        setInfo(key: "ad_unit_id", info: self.platformAdUnit)
     }
     
     func setRawAd(bannerAd: BannerView?) {
         self.rawAd = bannerAd
+        self.rawAd?.paidEventHandler = { (adValue) in self.handleAdmobAdValue(adValue: adValue)}
+        AdmobUtils.resolveResponseInfo(ads: self, responseInfo: self.rawAd?.responseInfo?.loadedAdNetworkResponseInfo)
     }
     
     override func view() -> UIView? {
         return rawAd
     }
-
+    
+    private func handleAdmobAdValue(adValue: AdValue) {
+        self.adValue = adValue
+        AdmobUtils.resolveAdmobPaidInfo(ads: self, adValue: adValue)
+        self.interactionCallback?.onAdsPaid()
+    }
+    
+    override func getUSDMicros() -> Double {
+        return adValue?.value.doubleValue ?? 0
+    }
 }
 
 

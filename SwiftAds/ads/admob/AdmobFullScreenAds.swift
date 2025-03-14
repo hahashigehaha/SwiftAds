@@ -8,19 +8,14 @@
 import GoogleMobileAds
 import Foundation
 
-class AdmobFullScreenAds:SwiftFullScreenAds {
-        
-    var interactionCallback: InteractionCallback?
+class AdmobFullScreenAds: SwiftFullScreenAds {
     
     var rawAd: Any?
+    var adValue: AdValue?
     
-    init(platformAdUnit: String,ttl: Int) {
-        super.init()
+    override init(platformAdUnit: String,ttl: Int) {
+        super.init(platformAdUnit: platformAdUnit, ttl: ttl)
         platform = "admob"
-        self.ttl = ttl
-        self.platformAdUnit = platformAdUnit
-        setInfo(key: "platform", info: self.platform)
-        setInfo(key: "ad_unit_id", info: self.platformAdUnit)
     }
     
     deinit {
@@ -29,6 +24,30 @@ class AdmobFullScreenAds:SwiftFullScreenAds {
     
     func setRawAd(rawAd: Any) {
         self.rawAd = rawAd
+        
+        if rawAd is AppOpenAd {
+            let appOpenAd = rawAd as! AppOpenAd
+            appOpenAd.paidEventHandler = { (adValue) in self.handleAdmobAdValue(adValue: adValue)}
+            AdmobUtils.resolveResponseInfo(ads: self,responseInfo: appOpenAd.responseInfo.loadedAdNetworkResponseInfo)
+        } else if rawAd is InterstitialAd {
+            let interstitialAd = rawAd as! InterstitialAd
+            interstitialAd.paidEventHandler = { (adValue) in self.handleAdmobAdValue(adValue: adValue)}
+            AdmobUtils.resolveResponseInfo(ads: self,responseInfo: interstitialAd.responseInfo.loadedAdNetworkResponseInfo)
+        } else if rawAd is RewardedAd {
+            let rewardAd = rawAd as! RewardedAd
+            rewardAd.paidEventHandler = { (adValue) in self.handleAdmobAdValue(adValue: adValue)}
+            AdmobUtils.resolveResponseInfo(ads: self,responseInfo: rewardAd.responseInfo.loadedAdNetworkResponseInfo)
+        }
+    }
+    
+    private func handleAdmobAdValue(adValue: AdValue) {
+        self.adValue = adValue
+        AdmobUtils.resolveAdmobPaidInfo(ads: self, adValue: adValue)
+        self.interactionCallback?.onAdsPaid()
+    }
+    
+    override func getUSDMicros() -> Double {
+        return adValue?.value.doubleValue ?? 0
     }
     
     override func show() {
@@ -48,31 +67,22 @@ class AdmobFullScreenAds:SwiftFullScreenAds {
             }
         }
     }
-    
-    override func setInteractionCallback(callback: any InteractionCallback) {
-        self.interactionCallback = callback
-    }
 }
 
 extension AdmobFullScreenAds: FullScreenContentDelegate {
     
-    
     func adWillPresentFullScreenContent(_ ad: any FullScreenPresentingAd) {
-        print("admob fullscreen ads will impression")
     }
     
     func adDidRecordImpression(_ ad: any FullScreenPresentingAd) {
-        print("admob fullscreen ads did impression")
         self.interactionCallback?.onAdImpression()
     }
     
     func adDidRecordClick(_ ad: any FullScreenPresentingAd) {
-        print("admob fullscreen ads did click")
         self.interactionCallback?.onAdClicked()
     }
     
     func adDidDismissFullScreenContent(_ ad: any FullScreenPresentingAd) {
-        print("admob fullscreen ads did dismiss")
         self.interactionCallback?.onAdClosed()
     }
 }
