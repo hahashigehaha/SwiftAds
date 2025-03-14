@@ -19,20 +19,23 @@ class AdsManager {
         return defaultAdsConfig
     }
     
-    private var loaderMap: [String : AdsLoader] = [String : AdsLoader]()
+    // 线程安全的队列来保护资源
+    private let adapterMapQueue = DispatchQueue(label: "com.adsmanager.adapterMapQueue")
+
+    private var loaderMap: ThreadSafeDictionary = ThreadSafeDictionary<String, AdsLoader>()
     private var adapterMap: [String : AdsAdapter] = [String : AdsAdapter]()
     
     private var eventDelegates = [SwiftEventDelegate]()
     
     func getOrCreatePlatformAdapter(platform: String) -> AdsAdapter? {
-        print("ads manager create platform adapter : \(adapterMap.count)  platform: \(platform) contains: \(adapterMap.contains(where: { $0.key == platform }))")
-
-        var adapter = adapterMap[platform]
-        if adapter == nil {
-            adapter = createNewAdapter(platform: platform)
-            adapterMap[platform] = adapter
+        return adapterMapQueue.sync {
+            var adapter = adapterMap[platform]
+            if adapter == nil {
+                adapter = createNewAdapter(platform: platform)
+                adapterMap[platform] = adapter
+            }
+            return adapter
         }
-        return adapter
     }
     
     private func createNewAdapter(platform: String) -> AdsAdapter {
@@ -72,11 +75,26 @@ class AdsManager {
         }
         
         if global {
-            let adsLoader = loaderMap[pageName] ?? SwiftAdsLoader(adsPage: page)
-            loaderMap[pageName] = adsLoader
+            let adsLoader = loaderMap.getValue(forKey: pageName) ?? SwiftAdsLoader(adsPage: page)
+            loaderMap.setValue(adsLoader, forKey: pageName)
             return adsLoader
         }
         return SwiftAdsLoader(adsPage: page)
+    }
+    
+    func startAutoFill() {
+        adsConfig.adsPages.forEach { adsPage in
+            if adsPage.preloadFillCount > 0 {
+                let loader = globalAdsLoader(pageName: adsPage.pageName)
+                loader.startAutoFill()
+            }
+        }
+    }
+
+    func stopAutoFill() {
+        loaderMap.values.forEach { loader in
+            loader.stopAutoFill()
+        }
     }
     
     func getConfigVersion() -> Int {

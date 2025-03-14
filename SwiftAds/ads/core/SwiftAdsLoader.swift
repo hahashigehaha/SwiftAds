@@ -8,7 +8,8 @@
 import Foundation
 
 class SwiftAdsLoader: AdsLoader {
-    
+    private let cacheQueue = DispatchQueue(label: "com.swiftads.cacheQueue", attributes: .concurrent)
+
     var adsPage: AdsPage
     var autoFill: Bool = false
     var cacheAdList: [SwiftAds] = [SwiftAds]()
@@ -32,8 +33,8 @@ class SwiftAdsLoader: AdsLoader {
         // 开启异步检查任务，一分钟检查一次，如果广告过期及时补充新广告
         Task {
             while(true) {
-                cacheAdList.removeAll { $0.isExpired() }
-                print("swift ads loader start fill recyle check fill")
+                removeExpiredCacheAds()
+                print("swift ads loader start fill recyle check fill : \(adsPage.pageName)")
                 checkAutoFill()
                 try await Task.sleep(nanoseconds: 60 * 1_000_000_000)
                 if !autoFill {
@@ -51,10 +52,10 @@ class SwiftAdsLoader: AdsLoader {
         let adStartTime = Date().timeIntervalSince1970
         // 优先检查缓存集合中是否有可用的广告，有则返回
         if !cacheAdList.isEmpty {
-            cacheAdList.removeAll { $0.isExpired() }
+            removeExpiredCacheAds()
             
             if !cacheAdList.isEmpty {
-                let ad = cacheAdList.removeFirst() as? T
+                let ad = getCachedAds() as? T
                 checkAutoFill()
                 let loadTime = Int((Date().timeIntervalSince1970 - adStartTime) * 1000)
                 adsManager.notifyEvent(event: AdsConstant.ST_AD_FETCH_RESULT, eventParams: buildEventParams(ad: ad, extraParams: ["from":"cache","result":true,"page_name":adsPage.pageName,"load_time":loadTime]))
@@ -147,15 +148,16 @@ class SwiftAdsLoader: AdsLoader {
     }
     
     private func fillPool() {
-        Task {
-            while( maxLoadCount > (cacheAdList.count + runningTaskList.count) && maxLoadConcurrency > runningTaskList.count) {
-                let task = Task { return await loadInternal() }
-                runningTaskList.append(task)
+        while( maxLoadCount > (cacheAdList.count + runningTaskList.count) && maxLoadConcurrency > runningTaskList.count) {
+            let task = Task { return await loadInternal() }
+            runningTaskList.append(task)
+            Task {
                 let result = await task.value
 
-                runningTaskList.removeAll { $0 == task }
-                
-                enqueueCache(ads: result)
+                if let index = runningTaskList.firstIndex(where: { $0 == task }) {
+                    runningTaskList.remove(at: index)
+                    enqueueCache(ads: result)
+                }
             }
         }
     }
@@ -174,17 +176,35 @@ class SwiftAdsLoader: AdsLoader {
         return params
     }
     
-    private func checkCacheAdList() {
-        cacheAdList.removeAll { $0.isExpired() }
+    // 移除过期的缓存广告
+    private func removeExpiredCacheAds() {
+        cacheQueue.async(flags: .barrier) {
+            self.cacheAdList.removeAll { $0.isExpired() }
+        }
     }
     
+    // 将广告加入缓存队列
     private func enqueueCache(ads: SwiftAds?) {
         guard let cache = ads else {
+            print("SwiftAdsLoader: Attempted to enqueue nil ads")
             return
         }
-        cacheAdList.removeAll(where: { $0.isExpired() })
-        cacheAdList.append(cache)
-        print("swift ads loader enqueue cache : \(cache.uuid)  cache size: \(cacheAdList.count)")
+        
+        cacheQueue.async(flags: .barrier) {
+            self.removeExpiredCacheAds()
+            self.cacheAdList.append(cache)
+            print("SwiftAdsLoader: Enqueued cache with UUID: \(cache.uuid), Cache size: \(self.cacheAdList.count)")
+        }
+    }
+    
+    // 获取缓存中的广告（线程安全）
+    private func getCachedAds() -> SwiftAds? {
+        return cacheQueue.sync {
+            if cacheAdList.count > 0 {
+                return cacheAdList.removeFirst()
+            }
+            return nil
+        }
     }
     
     private func currentTime() -> Int {

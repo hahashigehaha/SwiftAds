@@ -15,6 +15,7 @@ class AdmobBannerAds: SwiftViewAds {
     override init(platformAdUnit: String,ttl: Int) {
         super.init(platformAdUnit: platformAdUnit, ttl: ttl)
         platform = "admob"
+        setInfo(key: "platform", info: platform)
     }
     
     func setRawAd(bannerAd: BannerView?) {

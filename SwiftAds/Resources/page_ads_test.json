@@ -10,76 +10,16 @@
   },
   "adsPages": [
     {
-      "pageName": "splash_standalone",
-      "style": "fullscreen",
-      "timeOutMs": 20000,
-      "ttl": 1800000,
-      "preloadFillCount": 1,
-      "preloadConcurrency": 1,
-      "admobUnits": [
-        {
-          "adType": "appopen",
-          "adUnitId": "ca-app-pub-3940256099942544/55754630231"
-        }
-      ],
-      "maxUnits": []
-    },
-    {
       "pageName": "interstitial_standalone",
       "style": "fullscreen",
       "timeOutMs": 20000,
-      "ttl": 1800000,
+      "ttl": 100000,
       "preloadFillCount": 2,
       "preloadConcurrency": 2,
       "admobUnits": [
         {
           "adType": "interstitial",
           "adUnitId": "ca-app-pub-3940256099942544/4411468910"
-        }
-      ],
-      "maxUnits": []
-    },
-    {
-      "pageName": "native3",
-      "style": "view",
-      "timeOutMs": 20000,
-      "ttl": 1800000,
-      "preloadFillCount": 0,
-      "preloadConcurrency": 0,
-      "admobUnits": [
-        {
-          "adType": "native",
-          "adUnitId": "ca-app-pub-3940256099942544/2521693316"
-        }
-      ],
-      "maxUnits": []
-    },
-    {
-      "pageName": "native4",
-      "style": "view",
-      "timeOutMs": 20000,
-      "ttl": 1800000,
-      "preloadFillCount": 0,
-      "preloadConcurrency": 0,
-      "admobUnits": [
-        {
-          "adType": "native",
-          "adUnitId": "ca-app-pub-3940256099942544/3986624511"
-        }
-      ],
-      "maxUnits": []
-    },
-    {
-      "pageName": "banner",
-      "style": "view",
-      "timeOutMs": 20000,
-      "ttl": 1800000,
-      "preloadFillCount": 0,
-      "preloadConcurrency": 0,
-      "admobUnits": [
-        {
-          "adType": "banner",
-          "adUnitId": "ca-app-pub-3940256099942544/2934735716"
         }
       ],
       "maxUnits": []

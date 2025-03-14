@@ -46,11 +46,13 @@ func initAds() {
 private func test() {
     // 开启异步检查任务，一分钟检查一次，如果广告过期及时补充新广告
     Task {
-        while(true) {
+//        while(true) {
+            try await Task.sleep(nanoseconds: 70 * 1_000_000_000)
             loadAds()
-            try await Task.sleep(nanoseconds: 2 * 60 * 1_000_000_000)
-        }
+//        }
     }
+    
+    AdsManager.shared.startAutoFill()
 }
 
 var testAd: SwiftFullScreenAds?
