@@ -80,6 +80,7 @@ class SwiftAdsLoader: AdsLoader {
     }
     
     private func loadInternal() async -> SwiftAds? {
+        print("swift ads loader load internal start \(currentTime())" )
         let adStartTime = Date().timeIntervalSince1970
         guard let adUnit = adsPage.admobUnits.first else {
             print("swift ads loader load internal ad unit is null")
@@ -102,37 +103,34 @@ class SwiftAdsLoader: AdsLoader {
         
         var realAdObj: SwiftAds?
         var reason: String = ""
-        let requestTask = Task {
-            var adResult: SwiftAds?
-            var reason: String = ""
-            if adsPage.style == "fullscreen" {
-                let result = await adapter.loadFullScreenAds(config: adConfig)
-                adResult = result.adResult
-                reason = result.reason
-            } else if adsPage.style == "view" {
-                let result = await adapter.loadViewAds(config: adConfig)
-                adResult = result.adResult
-                reason = result.reason
-            } else {
-                adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: nil, extraParams: ["reason":"unsupported style","result":false]))
-                adResult = nil
-            }
-            return (adResult,reason)
-        }
-        
-        let timeOutTask = Task {
-            try await Task.sleep(nanoseconds: UInt64(timeOutMs) * NSEC_PER_SEC)
-            requestTask.cancel()
-        }
         
         do {
-            let taskResult = await requestTask.value
+            let taskResult = try await withTimeout(seconds: 10) {
+                var adResult: SwiftAds?
+                var reason: String = ""
+                if self.adsPage.style == "fullscreen" {
+                    let result = await adapter.loadFullScreenAds(config: adConfig)
+                    adResult = result.adResult
+                    reason = result.reason
+                } else if self.adsPage.style == "view" {
+                    let result = await adapter.loadViewAds(config: adConfig)
+                    adResult = result.adResult
+                    reason = result.reason
+                } else {
+                    self.adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: self.buildEventParams(ad: nil, extraParams: ["reason":"unsupported style","result":false]))
+                    adResult = nil
+                }
+                return (adResult,reason)
+            }
             realAdObj = taskResult.0
             reason = taskResult.1
-            timeOutTask.cancel()
+        }  catch is TimeoutError {
+            reason = "timeout"
         } catch {
-            print("swift ads loader load internal time out : \(error.localizedDescription)")
+            reason = "unknow error: \(error.localizedDescription)"
         }
+        
+        print("swift ads loader load internal end \(currentTime())")
         
         let loadTime = Int((Date().timeIntervalSince1970 - adStartTime) * 1000)
         adsManager.notifyEvent(event: AdsConstant.ST_AD_LOAD_RESULT, eventParams: buildEventParams(ad: realAdObj, extraParams: ["reason":reason,"result":realAdObj != nil,"load_time":loadTime]))
@@ -179,5 +177,34 @@ class SwiftAdsLoader: AdsLoader {
     private func checkCacheAdList() {
         cacheAdList.removeAll { $0.isExpired() }
     }
+    
+    private func currentTime() -> Int {
+        return Int( Date().timeIntervalSince1970 )
+    }
+    
+    private func withTimeout<T>(
+        seconds: TimeInterval,
+        operation: @escaping () async throws -> T
+    ) async throws -> T {
+        return try await withThrowingTaskGroup(of: T.self) { group in
+            // 启动任务
+            group.addTask {
+                return try await operation()
+            }
+
+            // 启动超时任务
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw TimeoutError()
+            }
+
+            // 等待第一个完成的任务
+            let result = try await group.next()!
+            group.cancelAll() // 取消其他任务
+            return result
+        }
+    }
+
+    struct TimeoutError: Error {}
     
 }
