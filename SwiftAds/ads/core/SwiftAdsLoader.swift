@@ -8,6 +8,7 @@
 import Foundation
 
 class SwiftAdsLoader: AdsLoader {
+    private let DEFAULT_MAX_FAILED_COUNT = 5
     private let cacheQueue = DispatchQueue(label: "com.swiftads.cacheQueue", attributes: .concurrent)
 
     var adsPage: AdsPage
@@ -17,6 +18,7 @@ class SwiftAdsLoader: AdsLoader {
     
     var maxLoadCount: Int = 0
     var maxLoadConcurrency: Int = 0
+    var failedCount: SafeCounter = SafeCounter()
     
     let adsManager = AdsManager.shared
                 
@@ -29,6 +31,7 @@ class SwiftAdsLoader: AdsLoader {
     func startAutoFill() {
         guard !autoFill else { return }
         autoFill = true
+        failedCount.reset()
         
         // 开启异步检查任务，一分钟检查一次，如果广告过期及时补充新广告
         Task {
@@ -38,6 +41,7 @@ class SwiftAdsLoader: AdsLoader {
                 checkAutoFill()
                 try await Task.sleep(nanoseconds: 60 * 1_000_000_000)
                 if !autoFill {
+                    print("swift ads loader start auto fill task break")
                     break
                 }
             }
@@ -46,6 +50,7 @@ class SwiftAdsLoader: AdsLoader {
     
     func stopAutoFill() {
         autoFill = false
+        print("swift ads loader stop auto fill")
     }
     
     func fetch<T: SwiftAds>() async -> T? where T: SwiftAds {
@@ -104,7 +109,7 @@ class SwiftAdsLoader: AdsLoader {
                 
         var realAdObj: SwiftAds?
         var reason: String = ""
-        
+                
         do {
             let taskResult = try await withTimeout(millisecond: timeOutMs) {
                 try await self.performAdLoad(with: adapter, config: adConfig)
@@ -142,7 +147,7 @@ class SwiftAdsLoader: AdsLoader {
     
     private func checkAutoFill() {
         print("swift ads loader check auto fill : \(autoFill) cache count: \(cacheAdList.count)  running count : \(runningTaskList.count)")
-        if autoFill {
+        if autoFill && failedCount.getCount() < DEFAULT_MAX_FAILED_COUNT {
             fillPool()
         }
     }
@@ -157,6 +162,8 @@ class SwiftAdsLoader: AdsLoader {
                 if let index = runningTaskList.firstIndex(where: { $0 == task }) {
                     runningTaskList.remove(at: index)
                     enqueueCache(ads: result)
+                } else {
+                    failedCount.increment()
                 }
             }
         }

@@ -13,9 +13,6 @@ class MaxAdapter: AdsAdapter {
         return (nil,"")
     }
     
-    
-
-    
     func initAdapter(config: [String : Any]) {
         
     }

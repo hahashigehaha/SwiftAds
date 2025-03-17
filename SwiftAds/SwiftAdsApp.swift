@@ -53,6 +53,11 @@ private func test() {
     }
     
     AdsManager.shared.startAutoFill()
+    
+    Task {
+        try await Task.sleep(nanoseconds: 5 * 60 * 1_000_000_000)
+        AdsManager.shared.stopAutoFill()
+    }
 }
 
 var testAd: SwiftFullScreenAds?

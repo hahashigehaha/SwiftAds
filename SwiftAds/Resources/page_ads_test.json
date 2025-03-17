@@ -13,7 +13,7 @@
       "pageName": "interstitial_standalone",
       "style": "fullscreen",
       "timeOutMs": 20000,
-      "ttl": 100000,
+      "ttl": 1800000,
       "preloadFillCount": 2,
       "preloadConcurrency": 2,
       "admobUnits": [
