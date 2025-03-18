@@ -26,7 +26,7 @@ class AdmobNativeAds: SwiftViewAds {
     func setRawAd(nativeAd: NativeAd?) {
         self.rawAd = nativeAd
         self.rawAd?.paidEventHandler = { (adValue) in self.handleAdmobAdValue(adValue: adValue)}
-        AdmobUtils.resolveResponseInfo(ads: self, responseInfo: self.rawAd?.responseInfo.loadedAdNetworkResponseInfo)
+        AdmobUtils.resolveResponseInfo(ads: self, responseInfo: self.rawAd?.responseInfo)
     }
     
     func getView() -> UIView? {

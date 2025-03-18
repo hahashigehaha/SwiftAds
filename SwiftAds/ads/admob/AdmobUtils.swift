@@ -17,11 +17,15 @@ struct AdmobUtils {
         ads?.setInfo(key: "precision", info: precision.rawValue)
         ads?.setInfo(key: "currency_code", info: currencyCode)
     }
+    
+    static func resolveResponseInfo(ads: SwiftAds?,responseInfo: ResponseInfo?) {
+        let responseId = responseInfo?.responseIdentifier
+        ads?.setInfo(key: "admob_response_id", info: responseId ?? "")
         
-    static func resolveResponseInfo(ads: SwiftAds?,responseInfo: AdNetworkResponseInfo?) {
-        let networkClassName = responseInfo?.adNetworkClassName
-        let sourceId = responseInfo?.adSourceID
-        let sourceName = responseInfo?.adSourceName
+        let loadedResponseInfo = responseInfo?.loadedAdNetworkResponseInfo
+        let networkClassName = loadedResponseInfo?.adNetworkClassName
+        let sourceId = loadedResponseInfo?.adSourceID
+        let sourceName = loadedResponseInfo?.adSourceName
         
         ads?.setInfo(key: "admob_network_name", info: networkClassName ?? "")
         ads?.setInfo(key: "admob_source_id", info: sourceId ?? "")

@@ -21,7 +21,7 @@ class AdmobBannerAds: SwiftViewAds {
     func setRawAd(bannerAd: BannerView?) {
         self.rawAd = bannerAd
         self.rawAd?.paidEventHandler = { (adValue) in self.handleAdmobAdValue(adValue: adValue)}
-        AdmobUtils.resolveResponseInfo(ads: self, responseInfo: self.rawAd?.responseInfo?.loadedAdNetworkResponseInfo)
+        AdmobUtils.resolveResponseInfo(ads: self, responseInfo: self.rawAd?.responseInfo)
     }
     
     override func view() -> UIView? {

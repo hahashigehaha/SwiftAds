@@ -23,11 +23,6 @@ class AdmobAdapter: NSObject, AdsAdapter {
         let adType = config["adType"] as? String
         let ttl = config["ttl"] as? Int ?? 1800000
         
-        do {
-            try await Task.sleep(nanoseconds: 10_000_000_000)
-        } catch {
-        }
-        
         if adType == "interstitial" {
             return await requestInterstitialAd(adUnitID: adUnitId,ttl: ttl)
         } else if adType == "appopen" {

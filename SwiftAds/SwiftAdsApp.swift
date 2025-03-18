@@ -47,17 +47,17 @@ private func test() {
     // 开启异步检查任务，一分钟检查一次，如果广告过期及时补充新广告
     Task {
 //        while(true) {
-            try await Task.sleep(nanoseconds: 70 * 1_000_000_000)
+//            try await Task.sleep(nanoseconds: 70 * 1_000_000_000)
             loadAds()
 //        }
     }
     
-    AdsManager.shared.startAutoFill()
+//    AdsManager.shared.startAutoFill()
     
-    Task {
-        try await Task.sleep(nanoseconds: 5 * 60 * 1_000_000_000)
-        AdsManager.shared.stopAutoFill()
-    }
+//    Task {
+//        try await Task.sleep(nanoseconds: 5 * 60 * 1_000_000_000)
+//        AdsManager.shared.stopAutoFill()
+//    }
 }
 
 var testAd: SwiftFullScreenAds?

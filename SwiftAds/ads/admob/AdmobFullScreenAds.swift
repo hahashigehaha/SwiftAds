@@ -29,15 +29,15 @@ class AdmobFullScreenAds: SwiftFullScreenAds {
         if rawAd is AppOpenAd {
             let appOpenAd = rawAd as! AppOpenAd
             appOpenAd.paidEventHandler = { (adValue) in self.handleAdmobAdValue(adValue: adValue)}
-            AdmobUtils.resolveResponseInfo(ads: self,responseInfo: appOpenAd.responseInfo.loadedAdNetworkResponseInfo)
+            AdmobUtils.resolveResponseInfo(ads: self,responseInfo: appOpenAd.responseInfo)
         } else if rawAd is InterstitialAd {
             let interstitialAd = rawAd as! InterstitialAd
             interstitialAd.paidEventHandler = { (adValue) in self.handleAdmobAdValue(adValue: adValue)}
-            AdmobUtils.resolveResponseInfo(ads: self,responseInfo: interstitialAd.responseInfo.loadedAdNetworkResponseInfo)
+            AdmobUtils.resolveResponseInfo(ads: self,responseInfo: interstitialAd.responseInfo)
         } else if rawAd is RewardedAd {
             let rewardAd = rawAd as! RewardedAd
             rewardAd.paidEventHandler = { (adValue) in self.handleAdmobAdValue(adValue: adValue)}
-            AdmobUtils.resolveResponseInfo(ads: self,responseInfo: rewardAd.responseInfo.loadedAdNetworkResponseInfo)
+            AdmobUtils.resolveResponseInfo(ads: self,responseInfo: rewardAd.responseInfo)
         }
     }
     

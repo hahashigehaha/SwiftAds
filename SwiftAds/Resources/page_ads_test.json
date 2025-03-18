@@ -10,6 +10,21 @@
   },
   "adsPages": [
     {
+        "pageName": "splash_standalone",
+        "style": "fullscreen",
+        "timeOutMs": 20000,
+        "ttl": 1800000,
+        "preloadFillCount": 2,
+        "preloadConcurrency": 2,
+        "admobUnits": [
+          {
+            "adType": "appopen",
+            "adUnitId": "ca-app-pub-3940256099942544/5575463023"
+          }
+        ],
+        "maxUnits": []
+    },
+    {
       "pageName": "interstitial_standalone",
       "style": "fullscreen",
       "timeOutMs": 20000,
