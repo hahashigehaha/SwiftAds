@@ -25,7 +25,7 @@ class AdsManager {
     private var loaderMap: ThreadSafeDictionary = ThreadSafeDictionary<String, AdsLoader>()
     private var adapterMap: [String : AdsAdapter] = [String : AdsAdapter]()
     
-    private var eventDelegates = [SwiftEventDelegate]()
+    private var eventDelegates = [WeakEventDelegate]()
     
     func getOrCreatePlatformAdapter(platform: String) -> AdsAdapter? {
         return adapterMapQueue.sync {
@@ -115,16 +115,19 @@ class AdsManager {
     }
     
     func addEventDelegate(_ delegate: SwiftEventDelegate) {
-        eventDelegates.append(delegate)
+        eventDelegates.append(WeakEventDelegate(delegate: delegate))
     }
     
     func notifyEvent(event: String, eventParams: [String: Any]?) {
         var params = eventParams ?? [:]
         params["config_version"] = getConfigVersion()
-
-        // 通知所有 delegate
-        eventDelegates.forEach { delegate in
-            delegate.onEvent(eventName: event, params: params)
+        
+        let eventDelegatesTemp = [WeakEventDelegate](eventDelegates)
+        DispatchQueue.main.async {
+            // 通知所有 delegate
+            eventDelegatesTemp.forEach { weakDelegate in
+                weakDelegate.delegate?.onEvent(eventName: event, params: params)
+            }
         }
     }
     

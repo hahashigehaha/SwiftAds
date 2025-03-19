@@ -14,8 +14,8 @@
         "style": "fullscreen",
         "timeOutMs": 20000,
         "ttl": 1800000,
-        "preloadFillCount": 2,
-        "preloadConcurrency": 2,
+        "preloadFillCount": 1,
+        "preloadConcurrency": 1,
         "admobUnits": [
           {
             "adType": "appopen",
@@ -29,8 +29,8 @@
       "style": "fullscreen",
       "timeOutMs": 20000,
       "ttl": 1800000,
-      "preloadFillCount": 2,
-      "preloadConcurrency": 2,
+      "preloadFillCount": 1,
+      "preloadConcurrency": 1,
       "admobUnits": [
         {
           "adType": "interstitial",
